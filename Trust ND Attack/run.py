@@ -3,9 +3,9 @@ from __future__ import division
 # from scapy.all import *
 from dadReply import DadReply
 
-def dadReply():
-    dadReply= DadReply()
+def dadReply(iface):
+    dadReply= DadReply(iface)
     dadReply.sniffingAndReply()
 
-dadReply()
+dadReply("lo")
 

